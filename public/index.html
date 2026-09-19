@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ReHook</title>
+<style>body{font:15px system-ui;margin:0;background:#f5f7fb;color:#172033}header{background:#172033;color:#fff;padding:18px 7vw}main{max-width:1100px;margin:24px auto;padding:0 20px}.grid{display:grid;grid-template-columns:1fr 2fr;gap:18px}.card{background:#fff;border:1px solid #dce2ec;border-radius:8px;padding:16px;box-shadow:0 2px 8px #17203310}button{background:#2463eb;color:#fff;border:0;border-radius:5px;padding:8px 12px;cursor:pointer}button.secondary{background:#64748b}input{padding:8px;border:1px solid #cbd5e1;border-radius:4px;width:70%}li{padding:10px;border-bottom:1px solid #e5e7eb;cursor:pointer}li:hover{background:#f1f5f9}pre{white-space:pre-wrap;overflow:auto;max-height:400px}small{color:#64748b}</style></head>
+<body><header><b>ReHook</b> <small style="color:#cbd5e1">webhook inspector & replay</small></header>
+<main><div class="grid"><section class="card"><h2>Captured webhooks</h2><button onclick="load()">Refresh</button><ul id="list"></ul></section><section class="card"><h2 id="title">Select a webhook</h2><div id="detail">Click a capture to inspect it.</div></section></div></main>
+<script>
+let selected; async function load(){const r=await fetch('/api/webhooks');const xs=await r.json();list.innerHTML=xs.map(x=>`<li onclick='show(${JSON.stringify(x.id)})'><b>${x.method}</b> ${x.path}<br><small>${new Date(x.timestamp).toLocaleString()} · ${x.id}</small></li>`).join('')||'<li>No captures yet. POST to /webhooks/... </li>'}
+async function show(id){selected=await (await fetch('/api/webhooks/'+id)).json();title.textContent=selected.method+' '+selected.path;detail.innerHTML='<p><b>Captured:</b> '+new Date(selected.timestamp).toLocaleString()+'</p><h3>Headers</h3><pre>'+esc(JSON.stringify(selected.headers,null,2))+'</pre><h3>Query</h3><pre>'+esc(JSON.stringify(selected.query,null,2))+'</pre><h3>Body</h3><pre>'+esc(selected.body)+'</pre><hr><input id="target" placeholder="https://example.com/webhook"><button onclick="replay()">Replay</button><p id="result"></p>'}
+async function replay(){const r=await fetch('/api/webhooks/'+selected.id+'/replay',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({target:target.value})});result.textContent=JSON.stringify(await r.json())}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}load();
+</script></body></html>
